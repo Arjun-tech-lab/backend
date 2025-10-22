@@ -13,7 +13,12 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/signup")
-@CrossOrigin(origins = "${FRONTEND_URL:http://localhost:5173}", allowCredentials = "true")
+@CrossOrigin(
+        origins = "${FRONTEND_URL:https://potyyourholes-gg85ccox0-botme2121-2892s-projects.vercel.app}",
+        allowCredentials = "true",
+        allowedHeaders = "*",
+        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS}
+)
 public class SignUpController {
 
     @Autowired
