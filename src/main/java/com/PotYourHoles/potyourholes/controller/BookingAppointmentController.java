@@ -19,7 +19,12 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/appointments")
-@CrossOrigin(origins = "${FRONTEND_URL:http://localhost:5173}") // dynamic frontend URL
+@CrossOrigin(
+        origins = "${FRONTEND_URL:https://potyyourholes-gg85ccox0-botme2121-2892s-projects.vercel.app}",
+        allowCredentials = "true",
+        allowedHeaders = "*",
+        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS}
+)
 public class BookingAppointmentController {
 
     @Autowired

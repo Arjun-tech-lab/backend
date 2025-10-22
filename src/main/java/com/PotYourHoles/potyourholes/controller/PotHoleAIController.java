@@ -2,16 +2,18 @@ package com.PotYourHoles.potyourholes.controller;
 
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
 
 @RestController
 @RequestMapping("/api/ai")
-@CrossOrigin(origins = "${FRONTEND_URL:http://localhost:5173}") // dynamic frontend URL
+@CrossOrigin(
+        origins = "${FRONTEND_URL:https://potyyourholes-gg85ccox0-botme2121-2892s-projects.vercel.app}",
+        allowCredentials = "true",
+        allowedHeaders = "*",
+        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS}
+)// dynamic frontend URL
 public class PotHoleAIController {
 
     @GetMapping("/model")

@@ -9,7 +9,12 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/contact")
-@CrossOrigin(origins = "${FRONTEND_URL:http://localhost:5173}") // Dynamic frontend URL
+@CrossOrigin(
+        origins = "${FRONTEND_URL:https://potyyourholes-gg85ccox0-botme2121-2892s-projects.vercel.app}",
+        allowCredentials = "true",
+        allowedHeaders = "*",
+        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS}
+)// Dynamic frontend URL
 public class ContactController {
 
     @Autowired
