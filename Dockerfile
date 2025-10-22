@@ -1,5 +1,6 @@
 # 1. Use official Java 17 runtime
-FROM eclipse-temurin:17-jdk-alpine
+FROM eclipse-temurin:21-jdk-alpine
+
 
 # 2. Set working directory inside container
 WORKDIR /app
