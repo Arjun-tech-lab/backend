@@ -14,7 +14,6 @@ import java.util.Arrays;
 @Configuration
 public class SecurityConfig {
 
-    // Inject frontend URL from application.properties or environment variable
     @Value("${FRONTEND_URL:http://localhost:5173}") // fallback to localhost
     private String frontendUrl;
 
@@ -26,7 +25,6 @@ public class SecurityConfig {
         configuration.setAllowedOriginPatterns(Arrays.asList(frontendUrl));
         configuration.setAllowCredentials(true);
 
-        // Allowed headers
         configuration.setAllowedHeaders(Arrays.asList(
                 "Origin",
                 "Content-Type",
@@ -34,7 +32,6 @@ public class SecurityConfig {
                 "Authorization"
         ));
 
-        // Allowed methods
         configuration.setAllowedMethods(Arrays.asList(
                 "GET",
                 "POST",
@@ -53,11 +50,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())       // Disable CSRF
+                .csrf(csrf -> csrf.disable())  // disable CSRF
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll()   // Allow all requests
+                        // Allow public access to uploaded images
+                        .requestMatchers("/uploads/**").permitAll()
+                        // Allow all other requests
+                        .anyRequest().permitAll()
                 )
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())); // Use our CorsConfigurationSource
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()));
 
         return http.build();
     }

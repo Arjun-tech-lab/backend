@@ -3,6 +3,7 @@ package com.PotYourHoles.potyourholes.controller;
 import com.PotYourHoles.potyourholes.dto.BookingAppDto;
 import com.PotYourHoles.potyourholes.model.Appointments;
 import com.PotYourHoles.potyourholes.repository.AppointmentRepository;
+import com.PotYourHoles.potyourholes.services.EmailServices;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.*;
@@ -29,6 +30,9 @@ public class BookingAppointmentController {
 
     @Autowired
     private AppointmentRepository repository;
+
+    @Autowired
+    private EmailServices emailServices; // ✅ Inject email service
 
     // ================= GET APPOINTMENTS (search + pagination) =================
     @GetMapping
@@ -109,7 +113,17 @@ public class BookingAppointmentController {
             app.setPotholePhoto(fileName);
         }
 
-        return repository.save(app);
+        // Save appointment in DB
+        Appointments savedAppointment = repository.save(app);
+
+        // ===================== SEND EMAIL =====================
+        try {
+            emailServices.sendThankYouEmail(dto.getEmail(), dto.getFullName());
+        } catch (Exception e) {
+            System.err.println("❌ Failed to send thank-you email: " + e.getMessage());
+        }
+
+        return savedAppointment;
     }
 
     // ================= DELETE APPOINTMENT =================

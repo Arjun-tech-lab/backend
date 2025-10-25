@@ -11,41 +11,41 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class OAuthConfig {
 
-    // Inject frontend URL from environment variable
     @Value("${FRONTEND_URL}")
     private String frontendUrl;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // Allow certain endpoints publicly
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/api/**", "/oauth2/**", "/login/**").permitAll()
+                        .requestMatchers(
+                                "/",
+                                "/api/**",
+                                "/oauth2/**",
+                                "/login/**",
+                                "/uploads/**"  // <== ALLOW uploads without login
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
-                // Enable Google OAuth login
                 .oauth2Login(oauth2 -> oauth2
-                        .defaultSuccessUrl(frontendUrl, true) // redirect to frontend after login
+                        .defaultSuccessUrl(frontendUrl, true)
                 )
-                // Enable logout
                 .logout(logout -> logout
-                        .logoutSuccessUrl(frontendUrl) // redirect after logout
+                        .logoutSuccessUrl(frontendUrl)
                         .permitAll()
                 )
-                // Disable CSRF for simplicity (not recommended in prod without CSRF token)
                 .csrf(csrf -> csrf.disable());
 
         return http.build();
     }
 
-    // Allow frontend requests (CORS)
     @Bean
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins(frontendUrl) // use environment variable
+                        .allowedOrigins(frontendUrl)
                         .allowedMethods("GET", "POST", "PUT", "DELETE")
                         .allowCredentials(true);
             }
