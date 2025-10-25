@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/ai")
 @CrossOrigin(
-        origins = "${FRONTEND_URL:https://potyyourholes-gg85ccox0-botme2121-2892s-projects.vercel.app}",
+        origins = "${FRONTEND_URL:https://potyyourholes-ahar829hp-botme2121-2892s-projects.vercel.app/}",
         allowCredentials = "true",
         allowedHeaders = "*",
         methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS}
@@ -35,7 +35,7 @@ public class AIBookingController {
     private AppointmentRepository appointmentRepository;
 
     // Inject AI service URL from environment variable or default to localhost
-    @Value("${AI_SERVICE_URL:http://localhost:5002/predict}")
+    @Value("${AI_SERVICE_URL:http://localhost:5002}")
     private String aiServiceUrl;
 
     private final String UPLOADS_DIR = System.getProperty("user.dir") + "/uploads/";
