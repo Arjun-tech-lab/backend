@@ -14,14 +14,15 @@ import java.util.Arrays;
 @Configuration
 public class SecurityConfig {
 
-    @Value("${FRONTEND_URL:http://localhost:5173}") // fallback to localhost
+    @Value("${FRONTEND_URL}")
     private String frontendUrl;
 
-    // ------------------- CORS CONFIGURATION -------------------
+    // ------------------- CORS CONFIG -------------------
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
+        // Frontend domain (Render/Vercel)
         configuration.setAllowedOriginPatterns(Arrays.asList(frontendUrl));
         configuration.setAllowCredentials(true);
 
@@ -42,22 +43,32 @@ public class SecurityConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
-
         return source;
     }
 
     // ------------------- SECURITY FILTER CHAIN -------------------
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())  // disable CSRF
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // Allow public access to uploaded images
-                        .requestMatchers("/uploads/**").permitAll()
-                        // Allow all other requests
-                        .anyRequest().permitAll()
+                        .requestMatchers(
+                                "/",
+                                "/api/**",
+                                "/uploads/**",
+                                "/oauth2/**",
+                                "/login/**"
+                        ).permitAll()
+                        .anyRequest().authenticated()
                 )
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()));
+                .oauth2Login(oauth2 -> oauth2
+                        .defaultSuccessUrl(frontendUrl, true)
+                )
+                .logout(logout -> logout
+                        .logoutSuccessUrl(frontendUrl)
+                        .permitAll()
+                );
 
         return http.build();
     }
