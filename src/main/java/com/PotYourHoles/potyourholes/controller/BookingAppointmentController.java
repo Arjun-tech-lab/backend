@@ -11,20 +11,16 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.HashMap;
-import java.util.Map;
+import java.nio.file.*;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/appointments")
 @CrossOrigin(
-        origins = "${FRONTEND_URL:https://potyyourholes-ahar829hp-botme2121-2892s-projects.vercel.app/}",
+        origins = "${FRONTEND_URL:https://potyyourholes-ahar829hp-botme2121-2892s-projects.vercel.app}",
         allowCredentials = "true",
         allowedHeaders = "*",
-        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS}
+        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE, RequestMethod.OPTIONS}
 )
 public class BookingAppointmentController {
 
@@ -32,9 +28,12 @@ public class BookingAppointmentController {
     private AppointmentRepository repository;
 
     @Autowired
-    private EmailServices emailServices; // ✅ Inject email service
+    private EmailServices emailServices;
 
-    // ================= GET APPOINTMENTS (search + pagination) =================
+    @Value("${UPLOAD_DIR:uploads}")
+    private String uploadDir;
+
+    // ================= GET APPOINTMENTS =================
     @GetMapping
     public Map<String, Object> getAppointments(
             @RequestParam(value = "search", defaultValue = "") String search,
@@ -46,20 +45,11 @@ public class BookingAppointmentController {
         Page<Appointments> resultPage;
 
         switch (searchField) {
-            case "email":
-                resultPage = repository.findByEmailContainingIgnoreCase(search, pageable);
-                break;
-            case "phone":
-                resultPage = repository.findByPhoneContainingIgnoreCase(search, pageable);
-                break;
-            case "address.city":
-                resultPage = repository.findByAddress_CityContainingIgnoreCase(search, pageable);
-                break;
-            case "address.state":
-                resultPage = repository.findByAddress_StateContainingIgnoreCase(search, pageable);
-                break;
-            default:
-                resultPage = repository.findByFullNameContainingIgnoreCase(search, pageable);
+            case "email" -> resultPage = repository.findByEmailContainingIgnoreCase(search, pageable);
+            case "phone" -> resultPage = repository.findByPhoneContainingIgnoreCase(search, pageable);
+            case "address.city" -> resultPage = repository.findByAddress_CityContainingIgnoreCase(search, pageable);
+            case "address.state" -> resultPage = repository.findByAddress_StateContainingIgnoreCase(search, pageable);
+            default -> resultPage = repository.findByFullNameContainingIgnoreCase(search, pageable);
         }
 
         Map<String, Object> response = new HashMap<>();
@@ -76,7 +66,7 @@ public class BookingAppointmentController {
     ) throws IOException {
 
         if (dto.getFullName() == null || dto.getEmail() == null || dto.getPhone() == null) {
-            throw new IllegalArgumentException("Full name, email, and phone are required");
+            throw new IllegalArgumentException("Full name, email, and phone are required.");
         }
 
         Appointments app = new Appointments();
@@ -84,13 +74,12 @@ public class BookingAppointmentController {
         app.setEmail(dto.getEmail());
         app.setPhone(dto.getPhone());
 
-        // Convert date safely
         if (dto.getDate() != null && !dto.getDate().isBlank()) {
             try {
                 java.time.LocalDate localDate = java.time.LocalDate.parse(dto.getDate());
                 app.setDate(java.sql.Date.valueOf(localDate));
             } catch (Exception e) {
-                throw new IllegalArgumentException("Invalid date format, expected yyyy-MM-dd");
+                throw new IllegalArgumentException("Invalid date format. Expected yyyy-MM-dd.");
             }
         }
 
@@ -101,26 +90,21 @@ public class BookingAppointmentController {
 
         // ===================== SAVE FILE =====================
         if (potholePhoto != null && !potholePhoto.isEmpty()) {
+            Files.createDirectories(Paths.get(uploadDir)); // ✅ Ensure directory exists
             String originalFilename = potholePhoto.getOriginalFilename();
-            String fileName = System.currentTimeMillis() + "_" + originalFilename;
-
-            Path uploadPath = Paths.get(System.getProperty("user.dir"), "uploads", fileName);
-
-            // Copy file to uploads folder
+            String fileName = System.currentTimeMillis() + "_" + (originalFilename != null ? originalFilename : "photo.jpg");
+            Path uploadPath = Paths.get(uploadDir, fileName);
             Files.copy(potholePhoto.getInputStream(), uploadPath, StandardCopyOption.REPLACE_EXISTING);
-
-            // Save only filename in DB
             app.setPotholePhoto(fileName);
         }
 
-        // Save appointment in DB
         Appointments savedAppointment = repository.save(app);
 
         // ===================== SEND EMAIL =====================
         try {
             emailServices.sendThankYouEmail(dto.getEmail(), dto.getFullName());
         } catch (Exception e) {
-            System.err.println("❌ Failed to send thank-you email: " + e.getMessage());
+            System.err.println(" Failed to send thank-you email: " + e.getMessage());
         }
 
         return savedAppointment;
@@ -130,8 +114,6 @@ public class BookingAppointmentController {
     @DeleteMapping("/{id}")
     public Map<String, String> deleteAppointment(@PathVariable String id) {
         repository.deleteById(id);
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Appointment deleted successfully");
-        return response;
+        return Map.of("message", "Appointment deleted successfully");
     }
 }
