@@ -4,6 +4,8 @@ import com.PotYourHoles.potyourholes.dto.BookingAppDto;
 import com.PotYourHoles.potyourholes.model.Appointments;
 import com.PotYourHoles.potyourholes.repository.AppointmentRepository;
 import com.PotYourHoles.potyourholes.services.EmailServices;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.*;
@@ -11,17 +13,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.*;
 import java.util.*;
 
 @RestController
 @RequestMapping("/api/appointments")
-@CrossOrigin(
-        origins = "${FRONTEND_URL:https://potyyourholes-ahar829hp-botme2121-2892s-projects.vercel.app}",
-        allowCredentials = "true",
-        allowedHeaders = "*",
-        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE, RequestMethod.OPTIONS}
-)
+@CrossOrigin(origins = "*")
 public class BookingAppointmentController {
 
     @Autowired
@@ -30,8 +26,8 @@ public class BookingAppointmentController {
     @Autowired
     private EmailServices emailServices;
 
-    @Value("${UPLOAD_DIR:uploads}")
-    private String uploadDir;
+    @Autowired
+    private Cloudinary cloudinary;
 
     // ================= GET APPOINTMENTS =================
     @GetMapping
@@ -58,7 +54,7 @@ public class BookingAppointmentController {
         return response;
     }
 
-    // ================= POST APPOINTMENT =================
+    // ================= CREATE APPOINTMENT =================
     @PostMapping
     public Appointments addAppointment(
             @RequestPart("data") BookingAppDto dto,
@@ -74,6 +70,7 @@ public class BookingAppointmentController {
         app.setEmail(dto.getEmail());
         app.setPhone(dto.getPhone());
 
+        // Convert date
         if (dto.getDate() != null && !dto.getDate().isBlank()) {
             try {
                 java.time.LocalDate localDate = java.time.LocalDate.parse(dto.getDate());
@@ -83,28 +80,34 @@ public class BookingAppointmentController {
             }
         }
 
+        // Address
         Appointments.Address addr = new Appointments.Address(
                 dto.getArea(), dto.getCity(), dto.getState(), dto.getPostCode()
         );
         app.setAddress(addr);
 
-        // ===================== SAVE FILE =====================
+        // ===================== CLOUDINARY UPLOAD =====================
         if (potholePhoto != null && !potholePhoto.isEmpty()) {
-            Files.createDirectories(Paths.get(uploadDir)); // ✅ Ensure directory exists
-            String originalFilename = potholePhoto.getOriginalFilename();
-            String fileName = System.currentTimeMillis() + "_" + (originalFilename != null ? originalFilename : "photo.jpg");
-            Path uploadPath = Paths.get(uploadDir, fileName);
-            Files.copy(potholePhoto.getInputStream(), uploadPath, StandardCopyOption.REPLACE_EXISTING);
-            app.setPotholePhoto(fileName);
+
+            Map uploadResult = cloudinary.uploader().upload(
+                    potholePhoto.getBytes(),
+                    ObjectUtils.asMap("folder", "potyourholes")
+            );
+
+            String cloudinaryUrl = uploadResult.get("secure_url").toString();
+
+            // Save Cloudinary URL to DB
+            app.setPotholePhoto(cloudinaryUrl);
         }
 
+        // Save appointment
         Appointments savedAppointment = repository.save(app);
 
-        // ===================== SEND EMAIL =====================
+        // ================= EMAIL =================
         try {
             emailServices.sendThankYouEmail(dto.getEmail(), dto.getFullName());
         } catch (Exception e) {
-            System.err.println(" Failed to send thank-you email: " + e.getMessage());
+            System.err.println("Email failed: " + e.getMessage());
         }
 
         return savedAppointment;
