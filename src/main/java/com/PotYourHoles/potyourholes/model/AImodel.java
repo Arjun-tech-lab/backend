@@ -10,7 +10,10 @@ public class AImodel {
 
     @Id
     private String id;
+
+    // Store Cloudinary URL here (backend already sends it)
     private String imagePath;
+
     private String severity;
     private Double confidence;
     private String modelVersion;
@@ -18,8 +21,9 @@ public class AImodel {
 
     public AImodel() {}
 
-    public AImodel(String imagePath, String severity, Double confidence, String modelVersion) {
-        this.imagePath = imagePath;
+    // FIXED: imagePath now stores full Cloudinary URL
+    public AImodel(String imageUrl, String severity, Double confidence, String modelVersion) {
+        this.imagePath = imageUrl;   // <-- THIS IS THE FIX
         this.severity = severity;
         this.confidence = confidence;
         this.modelVersion = modelVersion;
