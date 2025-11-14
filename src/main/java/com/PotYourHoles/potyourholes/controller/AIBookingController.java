@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/ai")
 @CrossOrigin(
-        origins = "${FRONTEND_URL:https://potyyourholes-ahar829hp-botme2121-2892s-projects.vercel.app/}",
+        origins = "${FRONTEND_URL:https://potyyourholes.vercel.app/}",
         allowCredentials = "true",
         allowedHeaders = "*",
         methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS}
@@ -45,7 +45,12 @@ public class AIBookingController {
             String severity = appt.getSeverity();
             String imageUrl = appt.getPotholePhoto();
 
-            // Only call AI if severity is missing or pending
+            // 🚨 Skip AI if image is not a real Cloudinary URL
+            if (imageUrl != null && !imageUrl.startsWith("http")) {
+                return new AIDto(imageUrl, severity != null ? severity : "pending");
+            }
+
+            // Only call AI if severity is missing or pending AND image is valid
             if ((severity == null || severity.equalsIgnoreCase("pending")) && imageUrl != null) {
                 try {
                     HttpHeaders headers = new HttpHeaders();
@@ -65,11 +70,9 @@ public class AIBookingController {
                         String mappedSeverity = mapClassToSeverity(flaskResponse.getBody().getClazz());
                         double confidence = flaskResponse.getBody().getConfidence();
 
-                        // Save to AI table
                         AImodel aiModel = new AImodel(imageUrl, mappedSeverity, confidence, "v1.0");
                         aiRepository.save(aiModel);
 
-                        // Update appointment
                         appt.setSeverity(mappedSeverity);
                         appointmentRepository.save(appt);
 
@@ -98,6 +101,11 @@ public class AIBookingController {
 
         if (imageUrl == null || imageUrl.isEmpty()) {
             return ResponseEntity.badRequest().body(new AIDto(null, "No image found"));
+        }
+
+        // 🚨 Skip AI for old filename-based images
+        if (!imageUrl.startsWith("http")) {
+            return ResponseEntity.ok(new AIDto(imageUrl, "pending"));
         }
 
         try {
